@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import subprocess
 
 from gi.repository import Gdk, GdkX11, Gio  # type: ignore[attr-defined]
 
@@ -61,5 +62,12 @@ def try_raise_app(app_id: str) -> bool:
 
         except ModuleNotFoundError:
             pass
+    else:
+        try:
+            subprocess.run(["kdotool", "search", "--limit", "1", "--classname", app_id, "windowactivate"], check=True)
+        except subprocess.CalledProcessError:
+            logger.exception("Exception while trying to activate window with kdotool")
+        else:
+            return True
 
     return False
