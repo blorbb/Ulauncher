@@ -64,10 +64,17 @@ def try_raise_app(app_id: str) -> bool:
             pass
     else:
         try:
-            subprocess.run(["kdotool", "search", "--limit", "1", "--classname", app_id, "windowactivate"], check=True)
+            p = subprocess.run(
+                ["kdotool", "search", "--limit", "1", "--class", app_id],
+                check=True,
+                stdout=subprocess.PIPE,
+            )
+            # if nothing shows up, return code is still 0
+            if len(p.stdout) == 0:
+                return False
+            subprocess.run(["kdotool", "windowactivate", p.stdout.strip()], check=True)
+            return True  # noqa: TRY300
         except subprocess.CalledProcessError:
             logger.exception("Exception while trying to activate window with kdotool")
-        else:
-            return True
 
     return False
