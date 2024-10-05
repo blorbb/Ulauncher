@@ -26,7 +26,7 @@ def launch_app(desktop_entry_name: str) -> bool:
     # strip field codes %f, %F, %u, %U, etc
     app_exec = re.sub(r"\%[uUfFdDnNickvm]", "", app_exec).strip()
     prefer_raise = settings.raise_if_started or app.get_boolean("SingleMainWindow")
-    if prefer_raise and app_exec and try_raise_app(desktop_entry_name.strip(".desktop")):
+    if prefer_raise and app_exec and try_raise_app(desktop_entry_name.removesuffix(".desktop")):
         return True
 
     if app.get_boolean("DBusActivatable"):

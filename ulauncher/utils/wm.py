@@ -33,48 +33,24 @@ def get_text_scaling_factor() -> float:
     return Gio.Settings.new("org.gnome.desktop.interface").get_double("text-scaling-factor")
 
 
-def try_raise_app(app_id: str) -> bool:
+def try_raise_app(desktop_entry: str) -> bool:
     """
     Try to raise an app by id (str) and return whether successful
     Currently only supports X11 via EWMH/Xlib
     """
-    if IS_X11:
-        try:
-            from ulauncher.utils.ewmh import EWMH
-
-            ewmh = EWMH()
-            for win in reversed(ewmh.getClientListStacking()):
-                wm_class = win.get_wm_class()
-                if not wm_class:
-                    logger.warning('Could not get the WM class for "%s". Will not be able to activate it.', app_id)
-                    return False
-                class_id, class_name = wm_class
-                win_app_id = (class_id or "").lower()
-                if win_app_id == "thunar" and win.get_wm_name().startswith("Bulk Rename"):
-                    # "Bulk Rename" identify as "Thunar": https://gitlab.xfce.org/xfce/thunar/-/issues/731
-                    # Also, note that get_wm_name is unreliable, but it works for Thunar https://github.com/parkouss/pyewmh/issues/15
-                    win_app_id = "thunar --bulk-rename"
-                if app_id == win_app_id or app_id == class_name.lower():
-                    logger.info("Raising application %s", app_id)
-                    ewmh.setActiveWindow(win)
-                    ewmh.display.flush()
-                    return True
-
-        except ModuleNotFoundError:
-            pass
-    else:
-        try:
-            p = subprocess.run(
-                ["kdotool", "search", "--limit", "1", "--class", app_id],
-                check=True,
-                stdout=subprocess.PIPE,
-            )
-            # if nothing shows up, return code is still 0
-            if len(p.stdout) == 0:
-                return False
-            subprocess.run(["kdotool", "windowactivate", p.stdout.strip()], check=True)
-            return True  # noqa: TRY300
-        except subprocess.CalledProcessError:
+    logger.info("trying to raise %s", desktop_entry)
+    try:
+        p = subprocess.run(
+            ["kdotool", "search", "--limit", "1", "--class", desktop_entry],
+            check=True,
+            stdout=subprocess.PIPE,
+        )
+        # if nothing shows up, return code is still 0
+        if len(p.stdout) == 0:
+            return False
+        subprocess.run(["kdotool", "windowactivate", p.stdout.strip()], check=True)
+        return True  # noqa: TRY300
+    except subprocess.CalledProcessError:
             logger.exception("Exception while trying to activate window with kdotool")
 
     return False
